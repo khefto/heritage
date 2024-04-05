@@ -3,6 +3,7 @@ steps:
     id: Test
     entrypoint: mvn
     args: [ 'test' ]
+
   - name: maven:3.3-jdk-8
     id: Build
     entrypoint: mvn
