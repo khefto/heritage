@@ -1,10 +1,9 @@
 steps:
-  - name: maven:3.3-jdk-8
+  - name: maven:3.9.1
     id: Test
     entrypoint: mvn
     args: [ 'test' ]
-
-  - name: maven:3.3-jdk-8
+  - name: maven:3.9.1
     id: Build
     entrypoint: mvn
     args: ['package','-Dmaven.test.skip=true']
