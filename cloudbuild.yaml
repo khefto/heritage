@@ -1,0 +1,82 @@
+steps:
+  - name: golang:1.20
+    id: Test
+    entrypoint: /bin/bash
+    args:
+      - -c
+      - |
+        go install github.com/jstemmer/go-junit-report/v2@latest
+        2>&1 go test -timeout 1m -v ./... | /go/bin/go-junit-report -set-exit-code -iocopy -out ${SHORT_SHA}_test_log.xml
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: Build
+    args:
+      - 'build'
+      - '-t'
+      - 'asia-southeast2-docker.pkg.dev/$PROJECT_ID/khhini-repository/go-sample-app:$SHORT_SHA'
+      - '.'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: Push
+    args:
+      - 'push'
+      - 'asia-southeast2-docker.pkg.dev/$PROJECT_ID/khhini-repository/go-sample-app:$SHORT_SHA'
+
+  - name: 'gcr.io/cloud-builders/git'
+    id: Retrieve SSH key
+    secretEnv: ['SSH_KEY']
+    entrypoint: 'bash'
+    args:
+      - -c
+      - |
+        echo "$$SSH_KEY" >> /root/.ssh/id_rsa
+        chmod 400 /root/.ssh/id_rsa
+        ssh-keyscan -t rsa github.com > /root/.ssh/known_hosts
+    volumes:
+      - name: 'ssh'
+        path: /root/.ssh
+
+  - name: 'gcr.io/cloud-builders/git'
+    id: Clone ENV repo
+    args:
+      - clone
+      - '-b'
+      - candidate
+      - git@github.com:khhini/riset-devsecops-sample-app-env.git
+    volumes:
+      - name: 'ssh'
+        path: /root/.ssh
+
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: Generate manifest
+    entrypoint: /bin/sh
+    args:
+      - '-c'
+      - |
+        cd riset-devsecops-sample-app-env
+        sed -i "s#asia-southeast2-docker.pkg.*#asia-southeast2-docker.pkg.dev/$PROJECT_ID/khhini-repository/go-sample-app:$SHORT_SHA#g" kubernetes.yaml
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: Push manifest
+    entrypoint: /bin/sh
+    args:
+      - '-c'
+      - |
+        set -x && \\
+        cd riset-devsecops-sample-app-env && \\
+        git config --global user.email $(git log --format='%an <%ae>' -n 1 HEAD)
+        git config --global user.name $(git log --format='%an <%ae>' -n 1 HEAD)
+        git add kubernetes.yaml && \\
+        git commit -m "Deploying image asia-southeast2-docker.pkg.dev/$PROJECT_ID/khhini-repository/go-sample-app:${SHORT_SHA}
+        Built from commit ${COMMIT_SHA} of repository hello-cloudbuild-app
+        Author: $(git log --format='%an <%ae>' -n 1 HEAD)" && \\
+        git push origin candidate
+    volumes:
+      - name: 'ssh'
+        path: /root/.ssh
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/1078293032607/secrets/github_ssh_keys/versions/1
+      env: 'SSH_KEY'
