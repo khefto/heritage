@@ -65,5 +65,5 @@ steps:
         path: /root/.ssh
 availableSecrets:
   secretManager:
-    - versionName: projects/1078293032607/secrets/github_ssh_keys/versions/1
+    - versionName: projects/451224987883/secrets/Github/versions/1
       env: 'SSH_KEY'
