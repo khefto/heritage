@@ -10,7 +10,11 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     id: Build
     args: ['build', '-t', 'europe-west1-docker.pkg.dev/heritage-419111/my-repository/heritage:$SHORT_SHA', '.']
-    images: ['europe-west1-docker.pkg.dev/heritage-419111/my-repository/heritage:$SHORT_SHA']
+  - name: 'gcr.io/cloud-builders/docker'
+    id: Push
+    args:
+      - 'push'
+      - 'europe-west1-docker.pkg.dev/heritage-419111/my-repository/heritage:$SHORT_SHA'
   - name: 'gcr.io/cloud-builders/git'
     id: Retrieve SSH key
     secretEnv: ['SSH_KEY']
