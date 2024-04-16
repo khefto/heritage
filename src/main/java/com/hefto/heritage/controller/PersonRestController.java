@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.hefto.heritage.dto.Person;
+import com.hefto.heritage.messaging.PersonProducer;
 import com.hefto.heritage.services.PersonService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,7 +21,11 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 class PersonRestController {
 
     @Autowired
+    private PersonProducer personProducer;
+
+    @Autowired
     private PersonService personService;
+
     public static final Class<PersonRestController> CONTROLLER = PersonRestController.class;
 
     @GetMapping("/Persons")
@@ -40,6 +45,8 @@ class PersonRestController {
 
     @DeleteMapping("/Person/{id}")
     ResponseEntity<Void> delete(@PathVariable Long id) {
+        Person person = personService.findPerson(id);
+        personProducer.sendMessage(id, person);
         personService.delete(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
